@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SODARO 3-Persona Crime Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ---------------------------------------------------------
+   GLOBAL
+--------------------------------------------------------- */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #000;
+  color: #00CFFF;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------
+   LOADING SCREEN
+--------------------------------------------------------- */
+#loadingScreen {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:9999;
+}
+#loadingLogo { width:160px; margin-bottom:25px; }
+#loadingBar { width:300px; height:10px; border:1px solid #00CFFF; border-radius:10px; overflow:hidden; }
+#loadingFill { width:0%; height:100%; background:#00CFFF; transition:width .18s linear; }
+
+/* ---------------------------------------------------------
+   LOGIN SCREEN
+--------------------------------------------------------- */
+#keycodeScreen {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:#050505;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:9998;
+}
+
+#loginBox {
+  width:350px;
+  padding:35px;
+  background:#0d0d0d;
+  border:1px solid #03363D;
+  border-radius:18px;
+  text-align:center;
+}
+
+#loginLogo { width:120px; margin-bottom:20px; }
+.loginTitle { font-size:22px; color:#00CFFF; margin-bottom:8px; }
+.loginSub { opacity:0.7; font-size:13px; margin-bottom:20px; }
+#keyInput { width:100%; padding:12px; border-radius:8px; border:1px solid #00CFFF; background:black; color:#00CFFF; }
+#submitKey { width:100%; padding:12px; background:#00CFFF; color:#00141E; border-radius:8px; border:none; margin-top:12px; cursor:pointer; font-weight:bold; }
+#errorKey { color:red; margin-top:10px; }
+
+/* ---------------------------------------------------------
+   HEADER
+--------------------------------------------------------- */
+nav {
+  height:85px;
+  width:100%;
+  background:#00141E;
+  border-bottom:2px solid #00CFFF;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 25px;
+}
+
+.leftHeader {
+  display:flex;
+  align-items:center;
+  gap:18px;
+}
+
+#sodaroLogo {
+  height:50px;
+}
+
+#title {
+  font-size:22px;
+  font-weight:bold;
+  text-shadow:0 0 8px #00CFFF;
+}
+
+.rightHeader {
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+
+#newsBtn {
+  background:#00CFFF;
+  color:#00141E;
+  padding:10px 20px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+#userBox {
+  display:flex;
+  align-items:center;
+  position:relative;
+  gap:8px;
+}
+
+#blinkDot {
+  width:10px; height:10px;
+  border-radius:50%;
+  background:#00CFFF;
+  animation: blink 1.3s infinite;
+}
+
+@keyframes blink {
+  0%,100% {opacity:1;}
+  50% {opacity:.3;}
+}
+
+#userButton {
+  background:#00CFFF;
+  padding:10px 20px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  color:#00141E;
+  font-weight:bold;
+}
+
+#dropdownMenu {
+  display:none;
+  position:absolute;
+  top:48px;
+  right:0;
+  background:#00293F;
+  border-radius:8px;
+  width:150px;
+  border:1px solid #00CFFF;
+}
+#dropdownMenu p {
+  padding:12px;
+  margin:0;
+  cursor:pointer;
+}
+#dropdownMenu p:hover { background:#013852 }
+
+/* ---------------------------------------------------------
+   3 PERSONAS (CENTERED)
+--------------------------------------------------------- */
+
+#personaSection {
+  margin-top:40px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* Charts centered as a row */
+#personaGrid {
+  width:100%;
+  max-width:1200px;
+  display:flex;
+  justify-content:center;
+  gap:40px;
+  flex-wrap:wrap;
+  padding:20px 0 40px;
+}
+
+/* Persona Cards */
+.personaCard {
+  width:330px;
+  background:#00121A;
+  padding:20px;
+  border-radius:18px;
+  text-align:center;
+  box-shadow:0 0 15px #013852;
+}
+
+.personaTitle {
+  font-size:20px;
+  margin-bottom:10px;
+}
+
+/* Chart Canvas */
+canvas {
+  width:100% !important;
+  height:230px !important;
+}
+
+/* Tooltip above chart */
+#definitionPopup {
+  position:absolute;
+  display:none;
+  padding:14px;
+  background:#001b24;
+  border-radius:10px;
+  border:1px solid #00CFFF;
+  color:#00CFFF;
+  width:260px;
+  text-align:left;
+  z-index:999;
+  transform:translateX(-50%);
+  font-size:14px;
+}
+
+/* ---------------------------------------------------------
+   NEWS PANEL
+--------------------------------------------------------- */
+#newsPanel {
+  position:fixed;
+  bottom:-420px;
+  width:100%;
+  height:420px;
+  background:#001820ee;
+  border-top:2px solid #00CFFF;
+  padding:20px;
+  transition:bottom .45s ease;
+  z-index:999;
+}
+#newsPanel.open { bottom:0; }
+#newsContainer {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:15px;
+}
+.news-card {
+  width:30%; min-width:250px;
+  background:#001b24;
+  padding:14px;
+  border-radius:10px;
+}
+
+/* Footer */
+footer {
+  text-align:center;
+  opacity:.8;
+  font-size:14px;
+  padding-bottom:30px;
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <img id="loadingLogo" src="sodaro_logo.png">
+  <div id="loadingBar"><div id="loadingFill"></div></div>
+</div>
+
+<!-- LOGIN -->
+<div id="keycodeScreen">
+  <div id="loginBox">
+    <img id="loginLogo" src="sodaro_logo.png">
+    <h2 class="loginTitle">SODARO Access Portal</h2>
+    <p class="loginSub">Enter Access Key</p>
+
+    <input id="keyInput" placeholder="California">
+    <button id="submitKey">Sign In</button>
+
+    <p id="errorKey"></p>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="definitionPopup"></div>
+
+<!-- NEWS PANEL -->
+<div id="newsPanel">
+  <h2 style="text-align:center;">LIVE NEWS — 2025</h2>
+  <div style="text-align:center;">
+    <button id="upNews" class="newsNavBtn">▲ Up</button>
+    <button id="downNews" class="newsNavBtn">▼ Down</button>
+  </div>
+  <div id="newsContainer"></div>
+</div>
+
+<!-- HEADER (FIXED) -->
+<nav>
+  <div class="leftHeader">
+    <img id="sodaroLogo" src="sodaro_logo.png">
+    <span id="title">SODARO California Crime Dashboard 2025</span>
+  </div>
+
+  <div class="rightHeader">
+    <button id="newsBtn">LIVE NEWS ▴</button>
+
+    <div id="userBox">
+      <span id="blinkDot"></span>
+      <button id="userButton">Bulli Sot ▾</button>
+
+      <div id="dropdownMenu">
+        <p>Settings</p>
+        <p id="logoff">Log Off</p>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- PERSONA SECTION (NOW CENTERED PROPERLY) -->
+<div id="personaSection">
+
+  <div id="personaGrid">
+
+    <div class="personaCard">
+      <div class="personaTitle">Persona 1</div>
+      <canvas id="pie1"></canvas>
+    </div>
+
+    <div class="personaCard">
+      <div class="personaTitle">Persona 2</div>
+      <canvas id="pie2"></canvas>
+    </div>
+
+    <div class="personaCard">
+      <div class="personaTitle">Persona 3</div>
+      <canvas id="pie3"></canvas>
+    </div>
+
+  </div>
+</div>
+
+<footer>© Bullimalinna Sot</footer>
+
+<script>
+/* ---------------------------------------------------------
+   LOADING LOGIC
+--------------------------------------------------------- */
+let load=0;
+let intv=setInterval(()=>{
+  load+=5;
+  loadingFill.style.width = load+"%";
+  if(load>=100){
+    clearInterval(intv);
+    setTimeout(()=>{
+      loadingScreen.style.display="none";
+      keycodeScreen.style.display="flex";
+    },300);
+  }
+},120);
+
+/* ---------------------------------------------------------
+   LOGIN
+--------------------------------------------------------- */
+submitKey.onclick = ()=>{
+  if(keyInput.value.trim() === "California"){
+    keycodeScreen.style.display="none";
+  } else {
+    errorKey.textContent="Incorrect key.";
+  }
+};
+
+/* ---------------------------------------------------------
+   DROPDOWN
+--------------------------------------------------------- */
+userButton.onclick = ()=> dropdownMenu.style.display =
+  dropdownMenu.style.display==="block" ? "none" : "block";
+logoff.onclick = ()=> window.location.href="https://www.jayaproduction.com";
+
+/* ---------------------------------------------------------
+   NEWS PANEL
+--------------------------------------------------------- */
+newsBtn.onclick = ()=> newsPanel.classList.toggle("open");
+
+/* ---------------------------------------------------------
+   CRIME DEFINITIONS (WITH ICONS)
+--------------------------------------------------------- */
+const dataMap = {
+  "Felony":"🛡️ Serious crimes punishable by prison: robbery, burglary, assault, major drug crimes.",
+  "Misdemeanor":"⚖️ Lower-level crimes: petty theft, vandalism, simple assault, DUI.",
+  "Violent":"🔪 Crimes involving force: assault, robbery, domestic violence.",
+  "Property":"🏠 Crimes against property: theft, burglary, vehicle break-ins.",
+  "Drug":"💊 Drug possession or sale.",
+  "Sex":"🔞 Sexual misconduct or exploitation.",
+  "Other":"📌 Weapons, resisting arrest, disorderly conduct."
+};
+
+/* ---------------------------------------------------------
+   PIE CHARTS (With Hover Tooltips Above Chart)
+--------------------------------------------------------- */
+function createPie(id, labels, values){
+
+  const chart = new Chart(document.getElementById(id),{
+    type:"pie",
+    data:{
+      labels:labels,
+      datasets:[{
+        data:values,
+        backgroundColor:["#00CFFF","#007EA8","#005D7A"]
+      }]
+    },
+    options:{
+      plugins:{ legend:{ labels:{ color:"#00CFFF" } } },
+      onHover: (evt, elements)=>{
+        const popup = document.getElementById("definitionPopup");
+
+        if(elements.length){
+          const index = elements[0].index;
+          const label = labels[index];
+          const rect = evt.chart.canvas.getBoundingClientRect();
+
+          popup.innerHTML = `<b>${label}</b><br>${dataMap[label]}`;
+          popup.style.display="block";
+
+          popup.style.left = (rect.left + rect.width/2) + "px";
+          popup.style.top = (rect.top - 70) + "px";
+        } else {
+          popup.style.display="none";
+        }
+      }
+    }
+  });
+
+  return chart;
+}
+
+createPie("pie1", ["Felony","Misdemeanor"], [261400,548538]);
+createPie("pie2", ["Violent","Property"], [103618,59116]);
+createPie("pie3", ["Drug","Sex","Other"], [19120,4404,75142]);
+
+/* ---------------------------------------------------------
+   NEWS API
+--------------------------------------------------------- */
+const API="pub_6a409b7b99a84f43be566f956dcbacb4";
+const URL=`https://newsdata.io/api/1/news?apikey=${API}&q=california%20crime&language=en`;
+
+let newsList=[], idx=0;
+
+async function loadNews(){
+  try{
+    const res=await fetch(URL);
+    const data=await res.json();
+    newsList=data.results || [];
+    renderNews();
+  }catch(e){
+    console.log("NEWS ERROR:", e);
+  }
+}
+
+function renderNews(){
+  newsContainer.innerHTML="";
+  newsList.slice(idx,idx+3).forEach(article=>{
+    newsContainer.innerHTML += `
+      <div class="news-card">
+        <h3>${article.title||"No Title"}</h3>
+        <p>${article.description||""}</p>
+        <a href="${article.link}" target="_blank">Read More →</a>
+      </div>`;
+  });
+}
+
+upNews.onclick = ()=>{ idx=Math.max(idx-3,0); renderNews(); };
+downNews.onclick = ()=>{ idx=Math.min(idx+3,newsList.length-3); renderNews(); };
+
+loadNews();
+
+</script>
+
+</body>
+</html>
